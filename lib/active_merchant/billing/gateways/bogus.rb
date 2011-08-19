@@ -2,12 +2,14 @@ module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     # Bogus Gateway
     class BogusGateway < Gateway
+      require 'exceptions'
+    
       AUTHORIZATION = '53433'
       
       SUCCESS_MESSAGE = "Bogus Gateway: Forced success"
       FAILURE_MESSAGE = "Bogus Gateway: Forced failure"
-      ERROR_MESSAGE = "Bogus Gateway: Use CreditCard number 4111111111111111 for success, 4242424242424242 for exception and anything else for error"
-      CREDIT_ERROR_MESSAGE = "Bogus Gateway: Use CreditCard number 4111111111111111 for success, 4242424242424242 for exception and anything else for error"
+      ERROR_MESSAGE = "Bogus Gateway: Use CreditCard number 4111111111111111 for success, 4242424242424242 for failure and anything else for error"
+      CREDIT_ERROR_MESSAGE = "Bogus Gateway: Use CreditCard number 4111111111111111 for success, 4242424242424242 for failure and anything else for error"
       UNSTORE_ERROR_MESSAGE = "Bogus Gateway: Use trans_id 1 for success, 2 for exception and anything else for error"
       CAPTURE_ERROR_MESSAGE = "Bogus Gateway: Use authorization number 1 for exception, 2 for error and anything else for success"
       VOID_ERROR_MESSAGE = "Bogus Gateway: Use authorization number 1 for exception, 2 for error and anything else for success"
@@ -26,7 +28,7 @@ module ActiveMerchant #:nodoc:
         when '4242424242424242'
           Response.new(false, FAILURE_MESSAGE, {:authorized_amount => money, :error => FAILURE_MESSAGE }, :test => true)
         else
-          raise Error, ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(ERROR_MESSAGE)
         end      
       end
   
@@ -38,7 +40,7 @@ module ActiveMerchant #:nodoc:
         when '4242424242424242'
           Response.new(false, FAILURE_MESSAGE, {:paid_amount => money, :error => FAILURE_MESSAGE },:test => true)
         else
-          raise Error, ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(ERROR_MESSAGE)
         end
       end
  
@@ -50,24 +52,19 @@ module ActiveMerchant #:nodoc:
         when '4242424242424242'
           Response.new(false, FAILURE_MESSAGE, {:paid_amount => money, :error => FAILURE_MESSAGE },:test => true)
         else
-          raise Error, ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(ERROR_MESSAGE)
         end
       end
  
-      def credit(money, creditcard, options = {})
-        if creditcard.is_a?(String)
-          deprecated CREDIT_DEPRECATION_MESSAGE
-          return refund(money, creditcard, options)
-        end
-
+      def credit(money, ident, options = {})
         money = amount(money)
-        case creditcard.number
-        when '4111111111111111'
-          Response.new(true, SUCCESS_MESSAGE, {:paid_amount => money}, :test => true )
-        when '4242424242424242'
+        case ident
+        when '1'
+          raise Exceptions::SandboxGatewayException.new(CREDIT_ERROR_MESSAGE)
+        when '2'
           Response.new(false, FAILURE_MESSAGE, {:paid_amount => money, :error => FAILURE_MESSAGE }, :test => true)
         else
-          raise Error, CREDIT_ERROR_MESSAGE
+          Response.new(true, SUCCESS_MESSAGE, {:paid_amount => money}, :test => true)
         end
       end
 
@@ -75,7 +72,7 @@ module ActiveMerchant #:nodoc:
         money = amount(money)
         case ident
         when '1'
-          raise Error, REFUND_ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(REFUND_ERROR_MESSAGE)
         when '2'
           Response.new(false, FAILURE_MESSAGE, {:paid_amount => money, :error => FAILURE_MESSAGE }, :test => true)
         else
@@ -87,7 +84,7 @@ module ActiveMerchant #:nodoc:
         money = amount(money)
         case ident
         when '1'
-          raise Error, CAPTURE_ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(CAPTURE_ERROR_MESSAGE)
         when '2'
           Response.new(false, FAILURE_MESSAGE, {:paid_amount => money, :error => FAILURE_MESSAGE }, :test => true)
         else
@@ -98,7 +95,7 @@ module ActiveMerchant #:nodoc:
       def void(ident, options = {})
         case ident
         when '1'
-          raise Error, VOID_ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(VOID_ERROR_MESSAGE)
         when '2'
           Response.new(false, FAILURE_MESSAGE, {:authorization => ident, :error => FAILURE_MESSAGE }, :test => true)
         else
@@ -113,7 +110,7 @@ module ActiveMerchant #:nodoc:
         when '4242424242424242'
           Response.new(false, FAILURE_MESSAGE, {:billingid => nil, :error => FAILURE_MESSAGE }, :test => true)
         else
-          raise Error, ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(ERROR_MESSAGE)
         end              
       end
       
@@ -124,7 +121,7 @@ module ActiveMerchant #:nodoc:
         when '2'
           Response.new(false, FAILURE_MESSAGE, {:error => FAILURE_MESSAGE },:test => true)
         else
-          raise Error, UNSTORE_ERROR_MESSAGE
+          raise Exceptions::SandboxGatewayException.new(UNSTORE_ERROR_MESSAGE)
         end
       end
     end
